@@ -6,7 +6,7 @@ from urllib.request import Request, urlopen
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 REPOSITORY = 'funny4875/ExtensionFinder'
 DEFAULT_URL = 'https://docs.google.com/spreadsheets/d/1Lct4-RYD9BnXr5FQcZGVMypbT2Q4OwIukyN0Fliut3Y/edit?gid=1015890817#gid=1015890817'
 CONFIG = Path(os.getenv('APPDATA', str(Path.home()))) / 'ExtensionFinder' / 'settings.json'
@@ -60,7 +60,7 @@ def latest_release():
 
 class App(tk.Tk):
     def __init__(self):
-        super().__init__(); self.title('分機查詢');
+        super().__init__(); self.title(f'分機查詢 v{VERSION}');
         try:
             import ctypes
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('ExtensionFinder.Desktop.1')
