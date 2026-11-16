@@ -1,5 +1,5 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="分機查詢" Manufacturer="ExtensionFinder" Version="1.0.1" UpgradeCode="e59f01e1-2e88-4e48-9504-1da24a0a5cac" Scope="perUser">
+  <Package Name="分機查詢" Manufacturer="ExtensionFinder" Version="1.0.2" UpgradeCode="e59f01e1-2e88-4e48-9504-1da24a0a5cac" Scope="perUser">
     <MajorUpgrade DowngradeErrorMessage="已安裝更新的版本。" />
     <MediaTemplate EmbedCab="yes" />
     <Icon Id="AppIcon" SourceFile="assets\icon.ico" />
@@ -17,6 +17,12 @@
         <RegistryValue Root="HKCU" Key="Software\ExtensionFinder" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </StandardDirectory>
-    <Feature Id="Main" Title="分機查詢"><ComponentRef Id="Application" /><ComponentRef Id="ShortcutComponent" /></Feature>
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcutComponent" Guid="*">
+        <Shortcut Id="DesktopShortcut" Name="分機查詢" Target="[INSTALLFOLDER]ExtensionFinder.exe" WorkingDirectory="INSTALLFOLDER" Icon="AppIcon" />
+        <RegistryValue Root="HKCU" Key="Software\ExtensionFinder" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+    <Feature Id="Main" Title="分機查詢"><ComponentRef Id="Application" /><ComponentRef Id="ShortcutComponent" /><ComponentRef Id="DesktopShortcutComponent" /></Feature>
   </Package>
 </Wix>
