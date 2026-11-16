@@ -14,5 +14,5 @@ Windows 電話分機查詢工具，可設定 Google 試算表連結，輸入姓�
 
 ```powershell
 python -m PyInstaller --noconfirm --onefile --windowed --name ExtensionFinder --icon assets\icon.ico --add-data 'assets\icon.ico;assets' --distpath dist --workpath build app.py
-wix build installer.wxs -o ExtensionFinder-1.0.2.msi
+wix build installer.wxs -o ExtensionFinder-1.0.3.msi
 ```

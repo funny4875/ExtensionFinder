@@ -1,5 +1,5 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="分機查詢" Manufacturer="ExtensionFinder" Version="1.0.2" UpgradeCode="e59f01e1-2e88-4e48-9504-1da24a0a5cac" Scope="perUser">
+  <Package Name="分機查詢" Manufacturer="ExtensionFinder" Version="1.0.3" UpgradeCode="e59f01e1-2e88-4e48-9504-1da24a0a5cac" Scope="perUser">
     <MajorUpgrade DowngradeErrorMessage="已安裝更新的版本。" />
     <MediaTemplate EmbedCab="yes" />
     <Icon Id="AppIcon" SourceFile="assets\icon.ico" />
