@@ -1,6 +1,6 @@
 # ExtensionFinder 分機查詢
 
-Windows 電話分機查詢工具，可設定 Google 試算表連結，輸入姓名或職務查詢。優先顯示完全符合，沒有時再顯示包含關鍵字或相似結果。工作表需包含「職務」、「姓名」、「分機」欄位，且可不登入直接讀取。每次查詢會重新讀取工作表。
+Windows 電話分機查詢工具，可設定 Google 試算表連結，輸入姓名或職務查詢。優先顯示完全符合，沒有時再顯示包含關鍵字或相似結果。工作表需包含「職務」、「姓名」、「分機」欄位，且可不登入直接讀取。每次查詢會重新讀取工作表。關閉時會記住視窗位置，下次啟動時恢復。
 
 ## 安裝與使用
 
@@ -14,5 +14,5 @@ Windows 電話分機查詢工具，可設定 Google 試算表連結，輸入姓�
 
 ```powershell
 python -m PyInstaller --noconfirm --onefile --windowed --name ExtensionFinder --icon assets\icon.ico --add-data 'assets\icon.ico;assets' --distpath dist --workpath build app.py
-wix build installer.wxs -o ExtensionFinder-1.0.3.msi
+wix build installer.wxs -o ExtensionFinder-1.0.4.msi
 ```

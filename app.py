@@ -6,7 +6,7 @@ from urllib.request import Request, urlopen
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-VERSION = '1.0.3'
+VERSION = '1.0.4'
 REPOSITORY = 'funny4875/ExtensionFinder'
 DEFAULT_URL = 'https://docs.google.com/spreadsheets/d/1Lct4-RYD9BnXr5FQcZGVMypbT2Q4OwIukyN0Fliut3Y/edit?gid=1015890817#gid=1015890817'
 CONFIG = Path(os.getenv('APPDATA', str(Path.home()))) / 'ExtensionFinder' / 'settings.json'
@@ -58,6 +58,60 @@ def latest_release():
     if not v or v<=version_tuple(VERSION): return None
     return release
 
+def load_settings():
+    try:
+        with CONFIG.open(encoding='utf-8') as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+def save_settings(data):
+    CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+
+def window_handle(window):
+    import ctypes
+    hwnd = window.winfo_id()
+    return ctypes.windll.user32.GetParent(hwnd) or hwnd
+
+def get_window_position(window):
+    import ctypes
+    from ctypes import wintypes
+    rect = wintypes.RECT()
+    if not ctypes.windll.user32.GetWindowRect(window_handle(window), ctypes.byref(rect)):
+        raise OSError('無法讀取視窗位置')
+    return [rect.left, rect.top]
+
+def restore_window_position(window, position):
+    # Screen coordinates are physical pixels; Win32 handles negative monitor coordinates.
+    import ctypes
+    from ctypes import wintypes
+    if not (isinstance(position, list) and len(position) == 2 and
+            all(type(v) is int and -100000 <= v <= 100000 for v in position)):
+        return False
+    x, y = position
+    user32 = ctypes.windll.user32
+    class MONITORINFO(ctypes.Structure):
+        _fields_ = [('cbSize', wintypes.DWORD), ('rcMonitor', wintypes.RECT),
+                    ('rcWork', wintypes.RECT), ('dwFlags', wintypes.DWORD)]
+    # Require the top-left region to be on a current monitor's work area.
+    probe = wintypes.RECT(x, y, x + 100, y + 50)
+    user32.MonitorFromRect.argtypes = [ctypes.POINTER(wintypes.RECT), wintypes.DWORD]
+    user32.MonitorFromRect.restype = wintypes.HANDLE
+    user32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.POINTER(MONITORINFO)]
+    user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
+    monitor = user32.MonitorFromRect(ctypes.byref(probe), 0)
+    if not monitor:
+        return False
+    info = MONITORINFO(); info.cbSize = ctypes.sizeof(info)
+    if not user32.GetMonitorInfoW(monitor, ctypes.byref(info)):
+        return False
+    work = info.rcWork
+    if not (x >= work.left and y >= work.top and x + 100 <= work.right and y + 50 <= work.bottom):
+        return False
+    return bool(user32.SetWindowPos(window_handle(window), 0, x, y, 0, 0, 0x0001 | 0x0004 | 0x0010))
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__(); self.title(f'分機查詢 v{VERSION}');
@@ -67,10 +121,12 @@ class App(tk.Tk):
             self.iconbitmap(str(Path(getattr(sys, '_MEIPASS', Path(__file__).parent)) / 'assets' / 'icon.ico'))
         except Exception: pass
         self.geometry('580x500'); self.minsize(520,420); self.configure(bg='#f1f6f6')
-        self.url=DEFAULT_URL
-        try:
-            with CONFIG.open(encoding='utf-8') as f: self.url=json.load(f).get('url',DEFAULT_URL)
-        except (OSError,ValueError,TypeError): pass
+        self.settings_data = load_settings()
+        self.url = self.settings_data.get('url', DEFAULT_URL)
+        self.protocol('WM_DELETE_WINDOW', self.close_window)
+        self.update_idletasks()
+        try: restore_window_position(self, self.settings_data.get('window_position'))
+        except (OSError, ValueError, TypeError): pass
         style=ttk.Style(self); style.theme_use('clam')
         style.configure('Treeview',font=('Microsoft JhengHei UI',15),rowheight=46,background='white',fieldbackground='white',borderwidth=0)
         style.configure('Treeview.Heading',font=('Microsoft JhengHei UI',12,'bold'),background='#e3efed',foreground='#315b57',relief='flat')
@@ -91,6 +147,14 @@ class App(tk.Tk):
         scroll=ttk.Scrollbar(table,orient='vertical',command=self.tree.yview); self.tree.configure(yscrollcommand=scroll.set); self.tree.pack(side='left',fill='both',expand=True); scroll.pack(side='right',fill='y')
         tk.Label(frame,text='未填分機顯示「未提供」',bg='#f1f6f6',fg='#8aa09c',font=('Microsoft JhengHei UI',10)).pack(anchor='w',pady=(8,0))
         self.entry.focus_set(); self.after(1000,self.check_update)
+    def close_window(self):
+        try:
+            if self.state() == 'normal':
+                self.settings_data['window_position'] = get_window_position(self)
+            save_settings(self.settings_data)
+        except (OSError, ValueError, TypeError):
+            pass
+        self.destroy()
     def settings(self):
         win=tk.Toplevel(self); win.title('設定工作表連結'); win.transient(self); win.resizable(False,False); win.configure(bg='#f1f6f6')
         box=tk.Frame(win,bg='#f1f6f6',padx=20,pady=18); box.pack(fill='both',expand=True)
@@ -99,8 +163,10 @@ class App(tk.Tk):
         val=tk.StringVar(value=self.url); entry=tk.Entry(box,textvariable=val,width=55,font=('Microsoft JhengHei UI',12)); entry.pack(fill='x',ipady=5)
         def save():
             try:
-                export_url(val.get()); CONFIG.parent.mkdir(parents=True,exist_ok=True)
-                CONFIG.write_text(json.dumps({'url':val.get().strip()},ensure_ascii=False,indent=2),encoding='utf-8'); self.url=val.get().strip(); win.destroy(); self.status.set('已儲存連結，請輸入姓名或職務查詢。')
+                export_url(val.get())
+                updated = dict(self.settings_data); updated['url'] = val.get().strip()
+                save_settings(updated); self.settings_data = updated; self.url = updated['url']
+                win.destroy(); self.status.set('已儲存連結，請輸入姓名或職務查詢。')
             except (ValueError,OSError) as e: messagebox.showerror('無法儲存',str(e),parent=win)
         tk.Button(box,text='儲存',command=save,bg='#187d70',fg='white',bd=0,padx=20,pady=6,font=('Microsoft JhengHei UI',11,'bold')).pack(anchor='e',pady=(12,0)); entry.focus_set(); win.grab_set()
     def run_search(self):
